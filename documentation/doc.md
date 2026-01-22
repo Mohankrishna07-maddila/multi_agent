@@ -342,3 +342,60 @@ Multi-agent AI systems
 Workflow engines
 
 are structured.
+ 
+next step:
+🚀 NEXT PHASE — ADD MEMORY / STATE (CRITICAL STEP)
+
+Right now your system is:
+
+Request → Agents → Response
+
+
+What it cannot do yet:
+
+Remember past requests
+
+Share context between calls
+
+Behave “intelligently”
+
+So next we build:
+
+Request → Orchestrator
+           ↳ Memory (state)
+           ↳ Agents
+           ↳ Memory update
+         → Response
+
+
+This maps directly to:
+
+Cosmos DB
+
+Durable Functions state
+
+Agent memory
+
+But we’ll start locally and simply.
+
+🧠 What “Memory” means (simple)
+
+Memory is just:
+
+A place to store data between requests
+
+Not AI memory yet — system memory.
+
+🧱 NEXT TASK (VERY CLEAR)
+Step 1 — Create a Memory service
+
+Inside multiple_Agents:
+
+Right-click project → Add → New Folder
+
+Name it:
+
+Memory
+
+
+Do nothing else yet.
