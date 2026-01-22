@@ -22,21 +22,23 @@ public class Program
         app.MapDefaultEndpoints();
 
         // ✅ ADD THIS BLOCK
-        app.MapGet("/api/orchestrate/{input}", (
+        app.MapGet("/api/orchestrate/{sessionId}/{input}", (
+            string sessionId,
             string input,
             multiple_Agents.Agents.ReaderAgent reader,
             multiple_Agents.Agents.ResponderAgent responder,
             multiple_Agents.Memory.ConversationMemory memory) =>
         {
-            memory.Add(input);
+            memory.Add(sessionId, input);
 
             var context = reader.Read(input);
             var result = responder.Respond(context);
 
-            var history = string.Join(" | ", memory.GetAll());
+            var history = string.Join(" | ", memory.GetAll(sessionId));
 
             return Results.Ok(new
             {
+                sessionId,
                 result,
                 memory = history
             });
