@@ -564,3 +564,19 @@ Durable workflows
 are designed.
 
 You are now thinking like a systems engineer, not a beginner.
+
+⏭ NEXT PHASE (COMING NEXT)
+
+From here, we have three powerful directions. You choose.
+
+OPTION 1 — Plug AI into agents
+
+Add GPT/Gemini into ReaderAgent and ResponderAgent
+
+OPTION 2 — Persist memory to database
+
+Replace in-memory store with SQLite → Cosmos DB
+
+OPTION 3 — Move to Durable Functions mindset
+
+Turn orchestrator into long-running workflow logic
