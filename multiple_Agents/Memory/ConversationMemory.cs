@@ -1,28 +1,26 @@
-﻿using System;
-using System.ComponentModel;
-
-namespace multiple_Agents.Memory;
+﻿namespace multiple_Agents.Memory;
 
 public class ConversationMemory
 {
-    private readonly List<string> _history = new();
+    private readonly Dictionary<string, List<string>> _sessions = new();
 
-    public void Add(string message)
+    public void Add(string sessionId, string message)
     {
-        _history.Add(message);
+        if (!_sessions.ContainsKey(sessionId))
+        {
+            _sessions[sessionId] = new List<string>();
+        }
+
+        _sessions[sessionId].Add(message);
     }
 
-    public IReadOnlyList<string> GetAll()
+    public IReadOnlyList<string> GetAll(string sessionId)
     {
-        return _history.AsReadOnly();
+        if (!_sessions.ContainsKey(sessionId))
+        {
+            return Array.Empty<string>();
+        }
+
+        return _sessions[sessionId].AsReadOnly();
     }
 }
-//What this class does(simple)
-
-//_history → stores messages
-
-//Add() → write memory
-
-//GetAll() → read memory
-
-//This is exactly how memory starts in real systems.
