@@ -14,6 +14,8 @@ public class Program
             .AddInteractiveServerComponents();
         builder.Services.AddSingleton<multiple_Agents.Agents.ReaderAgent>();
         builder.Services.AddSingleton<multiple_Agents.Agents.ResponderAgent>();
+        builder.Services.AddSingleton<multiple_Agents.Memory.ConversationMemory>();
+
 
         var app = builder.Build();
 
@@ -23,11 +25,21 @@ public class Program
         app.MapGet("/api/orchestrate/{input}", (
             string input,
             multiple_Agents.Agents.ReaderAgent reader,
-            multiple_Agents.Agents.ResponderAgent responder) =>
+            multiple_Agents.Agents.ResponderAgent responder,
+            multiple_Agents.Memory.ConversationMemory memory) =>
         {
+            memory.Add(input);
+
             var context = reader.Read(input);
             var result = responder.Respond(context);
-            return Results.Ok(result);
+
+            var history = string.Join(" | ", memory.GetAll());
+
+            return Results.Ok(new
+            {
+                result,
+                memory = history
+            });
         });
 
 
