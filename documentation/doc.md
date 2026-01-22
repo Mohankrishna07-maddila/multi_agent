@@ -344,6 +344,7 @@ Workflow engines
 are structured.
  
 next step:
+
 🚀 NEXT PHASE — ADD MEMORY / STATE (CRITICAL STEP)
 
 Right now your system is:
@@ -399,3 +400,167 @@ Memory
 
 
 Do nothing else yet.
+
+🚀 NEXT PHASE — SESSION-AWARE MEMORY (REAL BEHAVIOR)
+
+Right now your memory is:
+
+✅ Shared
+
+❌ Global (everyone shares the same memory)
+
+That is not acceptable in real systems.
+
+In real applications:
+
+Each user/session has its own memory
+
+One user must NOT see another user’s history
+
+So we upgrade your system to:
+
+Request (sessionId)
+   ↓
+Orchestrator
+   ↳ Memory (per session)
+   ↳ Agents
+   ↳ Update memory
+   ↓
+Response
+
+
+This maps directly to:
+
+Durable Functions instance IDs
+
+Cosmos DB partition keys
+
+Chat session IDs
+
+🧠 KEY IDEA (VERY SIMPLE)
+
+Instead of one list, we store:
+
+Dictionary<sessionId, List<messages>>
+
+
+That’s it. No magic.
+
+🧱 STEP 1 — UPGRADE MEMORY SERVICE
+
+Open
+multiple_Agents → Memory → ConversationMemory.cs
+
+🔴 Replace the entire file with this:
+namespace multiple_Agents.Memory;
+
+public class ConversationMemory
+{
+    private readonly Dictionary<string, List<string>> _sessions = new();
+
+    public void Add(string sessionId, string message)
+    {
+        if (!_sessions.ContainsKey(sessionId))
+        {
+            _sessions[sessionId] = new List<string>();
+        }
+
+        _sessions[sessionId].Add(message);
+    }
+
+    public IReadOnlyList<string> GetAll(string sessionId)
+    {
+        if (!_sessions.ContainsKey(sessionId))
+        {
+            return Array.Empty<string>();
+        }
+
+        return _sessions[sessionId].AsReadOnly();
+    }
+}
+
+
+Save the file.
+
+🧠 What changed (important)
+Before	After
+One list	Dictionary of sessions
+Global memory	Per-session memory
+Demo	Real system behavior
+🧱 STEP 2 — UPDATE ORCHESTRATION ENDPOINT
+
+Now we add a sessionId to the API.
+
+Open Program.cs and replace your /api/orchestrate endpoint with this:
+
+app.MapGet("/api/orchestrate/{sessionId}/{input}", (
+    string sessionId,
+    string input,
+    multiple_Agents.Agents.ReaderAgent reader,
+    multiple_Agents.Agents.ResponderAgent responder,
+    multiple_Agents.Memory.ConversationMemory memory) =>
+{
+    memory.Add(sessionId, input);
+
+    var context = reader.Read(input);
+    var result = responder.Respond(context);
+
+    var history = string.Join(" | ", memory.GetAll(sessionId));
+
+    return Results.Ok(new
+    {
+        sessionId,
+        result,
+        memory = history
+    });
+});
+
+
+Save the file.
+
+▶️ STEP 3 — TEST SESSION ISOLATION
+
+Run (F5) and test these exact URLs:
+
+Session A
+http://localhost:7272/api/orchestrate/user1/hello
+http://localhost:7272/api/orchestrate/user1/world
+
+Session B
+http://localhost:7272/api/orchestrate/user2/hi
+
+✅ EXPECTED RESULT (VERY IMPORTANT)
+
+user1 memory:
+
+hello | world
+
+
+user2 memory:
+
+hi
+
+
+No overlap. No mixing.
+
+🔥 WHAT YOU JUST BUILT (THIS IS HUGE)
+
+You now have:
+
+Feature	Status
+Agents	✅
+Orchestrator	✅
+Memory	✅
+Session isolation	✅
+
+This is exactly how:
+
+Chat sessions
+
+AI copilots
+
+Durable workflows
+
+are designed.
+
+You are now thinking like a systems engineer, not a beginner.
