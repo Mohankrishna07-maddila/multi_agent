@@ -236,3 +236,109 @@ Workflow engines
 are structured.
 
 the next step will be : 
+
+🧱 STEP 1 — CREATE AGENT FOLDER
+
+In multiple-agents project:
+
+Right-click project → Add → New Folder
+
+Name it:
+
+Agents
+
+🧱 STEP 2 — CREATE FIRST AGENT (READER)
+File: Agents/ReaderAgent.cs
+namespace multiple_Agents.Agents;
+
+public class ReaderAgent
+{
+    public string Read(string input)
+    {
+        return $"ReaderAgent processed: {input}";
+    }
+}
+
+
+Purpose:
+
+Represents an independent agent
+
+One responsibility only
+
+🧱 STEP 3 — CREATE SECOND AGENT (RESPONDER)
+File: Agents/ResponderAgent.cs
+namespace multiple_Agents.Agents;
+
+public class ResponderAgent
+{
+    public string Respond(string context)
+    {
+        return $"ResponderAgent response based on context: {context}";
+    }
+}
+
+🧱 STEP 4 — REGISTER AGENTS IN DI
+
+Open multiple_Agents/Program.cs
+
+Add before builder.Build():
+builder.Services.AddSingleton<Agents.ReaderAgent>();
+builder.Services.AddSingleton<Agents.ResponderAgent>();
+
+
+This makes them real services, not random classes.
+
+🧱 STEP 5 — CREATE ORCHESTRATION ENDPOINT
+
+Replace your /api/hello endpoint with this orchestrated one:
+
+app.MapGet("/api/orchestrate/{input}", (
+    string input,
+    Agents.ReaderAgent reader,
+    Agents.ResponderAgent responder) =>
+{
+    var context = reader.Read(input);
+    var result = responder.Respond(context);
+    return Results.Ok(result);
+});
+
+
+Now:
+
+Backend coordinates agents
+
+Each agent is isolated
+
+Orchestrator controls flow
+
+▶️ STEP 6 — TEST ORCHESTRATION
+
+Run (F5), then open:
+
+http://localhost:7272/api/orchestrate/hello
+
+
+Expected output:
+
+ResponderAgent response based on context: ReaderAgent processed: hello
+
+🧠 WHAT YOU JUST BUILT (VERY IMPORTANT)
+
+You now have:
+
+Concept	Implemented as
+Agent	Independent class
+Orchestrator	API endpoint
+Coordination	Dependency Injection
+Flow control	Explicit order
+
+This is exactly how:
+
+Durable Functions orchestrators
+
+Multi-agent AI systems
+
+Workflow engines
+
+are structured.
