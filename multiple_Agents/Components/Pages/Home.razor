@@ -5,3 +5,17 @@
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+@inject HttpClient Http
+
+<button @onclick="CallBackend">Call Backend</button>
+
+<p>@message</p>
+
+@code {
+    string message;
+
+    async Task CallBackend()
+    {
+        message = await Http.GetStringAsync("http://localhost:7272/api/hello");
+    }
+}
