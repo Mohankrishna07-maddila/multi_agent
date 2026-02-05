@@ -1,32 +1,16 @@
 ﻿@page "/"
-@inject IHttpClientFactory HttpClientFactory
 
-<h3>Durable Chat Test</h3>
+<h3>Blazor Click Test</h3>
 
-<input @bind="userInput" placeholder="Type something..." />
-<button @onclick="StartWorkflow">Start Workflow</button>
+<button @onclick="TestClick">Click Me</button>
 
-<p><b>Status:</b> @status</p>
+<p>@message</p>
 
 @code {
-    string userInput = "";
-    string status = "Idle";
+    string message = "Not clicked yet";
 
-    async Task StartWorkflow()
+    void TestClick()
     {
-        try
-        {
-            status = "Calling backend...";
-
-            var client = HttpClientFactory.CreateClient("durable");
-            var response =
-                await client.GetStringAsync($"/api/start/{userInput}");
-
-            status = $"Success: {response}";
-        }
-        catch (Exception ex)
-        {
-            status = $"ERROR: {ex.Message}";
-        }
+        message = "Button click works!";
     }
 }
