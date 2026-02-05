@@ -1,15 +1,26 @@
 ﻿using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using DurableBackend.AI;
 
 namespace DurableBackend;
 
-public static class ReaderActivity
+public class ReaderActivity
 {
-    [Function("ReaderActivity")]
-    public static string Run([ActivityTrigger] string input, FunctionContext executionContext)
+    private readonly IAiClient _ai;
+    private readonly ILogger _logger;
+
+    public ReaderActivity(IAiClient ai, ILoggerFactory loggerFactory)
     {
-        ILogger logger = executionContext.GetLogger("ReaderActivity");
-        logger.LogInformation("ReaderActivity triggered with input: {input}", input);
-        return $"ReaderAgent processed: {input}";
+        _ai = ai;
+        _logger = loggerFactory.CreateLogger<ReaderActivity>();
+    }
+
+    [Function("ReaderActivity")]
+    public async Task<string> Run([ActivityTrigger] string input)
+    {
+        _logger.LogInformation("ReaderAgent analyzing input");
+
+        var prompt = $"Analyze the following user input:\n{input}";
+        return await _ai.GenerateAsync(prompt);
     }
 }

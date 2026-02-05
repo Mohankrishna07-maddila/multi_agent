@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+builder.Services.AddSingleton<DurableBackend.AI.IAiClient, DurableBackend.AI.MockAiClient>();
 
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
