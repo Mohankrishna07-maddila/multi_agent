@@ -2,32 +2,79 @@
 @rendermode InteractiveServer
 @inject IHttpClientFactory HttpClientFactory
 
-<h3>Durable Workflow Test</h3>
+<h3>Durable AI Workflow</h3>
 
 <input @bind="userInput" placeholder="Type something..." />
 <button @onclick="StartWorkflow">Start Workflow</button>
 
 <p><b>Status:</b> @status</p>
 
+@if (!string.IsNullOrEmpty(result))
+{
+    <h4>AI Result</h4>
+    <pre>@result</pre>
+}
+
 @code {
     string userInput = "";
     string status = "Idle";
+    string result = "";
+    string instanceId = "";
 
     async Task StartWorkflow()
     {
         try
         {
-            status = "Calling Durable backend...";
+            status = "Starting workflow...";
+            result = "";
 
             var client = HttpClientFactory.CreateClient("durable");
-            var response =
+
+            // 1️⃣ Start workflow
+            var startResponse =
                 await client.GetStringAsync($"/api/start/{userInput}");
 
-            status = $"Started successfully: {response}";
+            instanceId = System.Text.Json.JsonDocument
+                .Parse(startResponse)
+                .RootElement
+                .GetProperty("instanceId")
+                .GetString()!;
+
+            status = $"Workflow started (ID: {instanceId}). Waiting for completion...";
+
+            // 2️⃣ Poll status
+            await PollStatus(client);
         }
         catch (Exception ex)
         {
             status = $"ERROR: {ex.Message}";
+        }
+    }
+
+    async Task PollStatus(HttpClient client)
+    {
+        while (true)
+        {
+            await Task.Delay(1000); // poll every second
+
+            var statusResponse =
+                await client.GetStringAsync(
+                    $"/runtime/webhooks/durabletask/instances/{instanceId}");
+
+            var json = System.Text.Json.JsonDocument.Parse(statusResponse);
+            var runtimeStatus = json.RootElement.GetProperty("runtimeStatus").GetString();
+
+            status = $"Workflow status: {runtimeStatus}";
+
+            if (runtimeStatus == "Completed")
+            {
+                result = json.RootElement
+                    .GetProperty("output")
+                    .ToString();
+
+                status = "Workflow completed";
+                break;
+            }
         }
     }
 }
