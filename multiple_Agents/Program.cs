@@ -28,6 +28,14 @@ public class Program
             return Results.Ok("Hello from multiple-agents backend");
         });
 
+        app.MapGet("/api/orchestrate/{sessionId}/{input}", (
+            string sessionId, 
+            string input, 
+            multiple_Agents.Orchestration.ConversationOrchestrator orchestrator) =>
+        {
+            return Results.Ok(orchestrator.Run(sessionId, input));
+        });
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Error");
