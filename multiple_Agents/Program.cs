@@ -16,6 +16,10 @@ public class Program
         builder.Services.AddSingleton<multiple_Agents.Agents.ResponderAgent>();
         builder.Services.AddSingleton<multiple_Agents.Memory.ConversationMemory>();
         builder.Services.AddSingleton<multiple_Agents.Orchestration.ConversationOrchestrator>();
+        builder.Services.AddHttpClient("durable", client =>
+        {
+            client.BaseAddress = new Uri("http://localhost:7136");
+        });
 
 
         var app = builder.Build();

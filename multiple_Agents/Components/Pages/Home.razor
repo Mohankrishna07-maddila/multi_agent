@@ -1,21 +1,32 @@
 ﻿@page "/"
+@inject IHttpClientFactory HttpClientFactory
 
-<PageTitle>Home</PageTitle>
+<h3>Durable Chat Test</h3>
 
-<h1>Hello, world!</h1>
+<input @bind="userInput" placeholder="Type something..." />
+<button @onclick="StartWorkflow">Start Workflow</button>
 
-Welcome to your new app.
-@inject HttpClient Http
-
-<button @onclick="CallBackend">Call Backend</button>
-
-<p>@message</p>
+<p><b>Status:</b> @status</p>
 
 @code {
-    string message;
+    string userInput = "";
+    string status = "Idle";
 
-    async Task CallBackend()
+    async Task StartWorkflow()
     {
-        message = await Http.GetStringAsync("http://localhost:7272/api/hello");
+        try
+        {
+            status = "Calling backend...";
+
+            var client = HttpClientFactory.CreateClient("durable");
+            var response =
+                await client.GetStringAsync($"/api/start/{userInput}");
+
+            status = $"Success: {response}";
+        }
+        catch (Exception ex)
+        {
+            status = $"ERROR: {ex.Message}";
+        }
     }
 }
