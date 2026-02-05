@@ -2,8 +2,9 @@
   "profiles": {
     "DurableBackend": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7136",
-      "launchBrowser": false
+      "commandLineArgs": "--port 7071",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:7071"
     }
   }
 }
