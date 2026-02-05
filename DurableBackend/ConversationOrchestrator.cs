@@ -1,13 +1,13 @@
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask;
 
 namespace DurableBackend;
 
 public static class ConversationOrchestrator
 {
-    [FunctionName("ConversationOrchestrator")]
+    [Function("ConversationOrchestrator")]
     public static async Task<object> Run(
-        [OrchestrationTrigger] IDurableOrchestrationContext context)
+        [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var input = context.GetInput<string>();
 

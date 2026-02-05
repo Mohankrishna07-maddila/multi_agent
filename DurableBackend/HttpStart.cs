@@ -1,23 +1,30 @@
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.DurableTask.Client;
+using System.Net;
 
 namespace DurableBackend;
 
 public static class HttpStart
 {
-    [FunctionName("StartConversation")]
-    public static async Task<IActionResult> Run(
+    [Function("StartConversation")]
+    public static async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "start/{input}")]
-        HttpRequest req,
+        HttpRequestData req,
         string input,
-        [DurableClient] IDurableOrchestrationClient starter)
+        [DurableClient] DurableTaskClient client)
     {
         string instanceId =
-            await starter.StartNewAsync("ConversationOrchestrator", input);
+            await client.ScheduleNewOrchestrationInstanceAsync(
+                "ConversationOrchestrator",
+                input);
 
-        return starter.CreateCheckStatusResponse(req, instanceId);
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        await response.WriteStringAsync(
+            $"{{ \"instanceId\": \"{instanceId}\" }}");
+
+        return response;
     }
 }
