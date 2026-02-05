@@ -18,7 +18,7 @@ public class Program
         builder.Services.AddSingleton<multiple_Agents.Orchestration.ConversationOrchestrator>();
         builder.Services.AddHttpClient("durable", client =>
         {
-            client.BaseAddress = new Uri("http://localhost:7136");
+            client.BaseAddress = new Uri("https://localhost:7136");
         });
 
 
