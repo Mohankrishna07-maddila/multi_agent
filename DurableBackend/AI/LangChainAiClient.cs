@@ -1,6 +1,5 @@
-using LangChain;
+using LangChain.Providers;
 using LangChain.Providers.Ollama;
-using LangChain.Prompts;
 
 namespace DurableBackend.AI;
 
@@ -10,20 +9,13 @@ public class LangChainAiClient : IAiClient
 
     public LangChainAiClient()
     {
-        _model = new OllamaChatModel(
-            model: "llama3.2:1b",
-            endpoint: "http://localhost:11434");
+        var provider = new OllamaProvider();
+        _model = new OllamaChatModel(provider, "llama3.2:1b");
     }
 
     public async Task<string> GenerateAsync(string prompt)
     {
-        var template = new PromptTemplate(
-            "You are a helpful AI assistant.\n\n{input}");
-
-        var chain = template | _model;
-
-        var result = await chain.RunAsync(new { input = prompt });
-
-        return result;
+        var response = await _model.GenerateAsync($"You are a helpful AI assistant.\n\n{prompt}");
+        return response.ToString();
     }
 }

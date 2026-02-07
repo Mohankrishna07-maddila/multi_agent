@@ -11,16 +11,9 @@ public static class ConversationOrchestrator
     {
         var input = context.GetInput<string>();
 
-        var readerResult =
-            await context.CallActivityAsync<string>("ReaderActivity", input);
+        var result =
+            await context.CallActivityAsync<string>("GraphActivity", input);
 
-        var responderResult =
-            await context.CallActivityAsync<string>("ResponderActivity", readerResult);
-
-        return new
-        {
-            input,
-            result = responderResult
-        };
+        return new { result };
     }
 }
