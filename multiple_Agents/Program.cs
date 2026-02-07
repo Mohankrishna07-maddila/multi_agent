@@ -16,9 +16,11 @@ public class Program
         builder.Services.AddSingleton<multiple_Agents.Agents.ResponderAgent>();
         builder.Services.AddSingleton<multiple_Agents.Memory.ConversationMemory>();
         builder.Services.AddSingleton<multiple_Agents.Orchestration.ConversationOrchestrator>();
-        builder.Services.AddHttpClient("durable", client =>
+        builder.Services.AddHttpClient("durable", (sp, client) =>
         {
-            client.BaseAddress = new Uri("http://localhost:7071");
+            var config = sp.GetRequiredService<IConfiguration>();
+            var backendUrl = config["DurableBackendUrl"] ?? "http://localhost:7071";
+            client.BaseAddress = new Uri(backendUrl);
         });
 
 
