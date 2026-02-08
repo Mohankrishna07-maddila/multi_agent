@@ -1,6 +1,7 @@
 using LangChain.Providers;
 using LangChain.Providers.Ollama;
-using DurableBackend.AI.Graph;
+using DurableBackend.Services;
+using DurableBackend.Models;
 
 namespace DurableBackend.AI.Graph;
 
@@ -8,9 +9,11 @@ public class ResponseNode
 {
     private readonly OllamaChatModel? _model;
     private readonly bool _useMock;
+    private readonly CosmosDbService _cosmosService;
 
-    public ResponseNode()
+    public ResponseNode(CosmosDbService cosmosService)
     {
+        _cosmosService = cosmosService;
         var ollamaEndpoint = Environment.GetEnvironmentVariable("OLLAMA_ENDPOINT");
         Console.WriteLine($"[ResponseNode] OLLAMA_ENDPOINT value: '{ollamaEndpoint}'");
         
@@ -20,7 +23,7 @@ public class ResponseNode
             Console.WriteLine("[ResponseNode] Local environment detected. connecting to local Ollama...");
             try 
             {
-                var provider = new OllamaProvider(); // http://localhost:11434
+                var provider = new OllamaProvider(url: "http://localhost:11434");
                 _model = new OllamaChatModel(provider, "llama3.2:1b");
                 _useMock = false;
                 Console.WriteLine("[ResponseNode] Connected to local Ollama.");
@@ -34,7 +37,6 @@ public class ResponseNode
         else
         {
             // Azure/Cloud Environment - Default to mock for now
-            // Future: Implement Azure OpenAI or configured Ollama
             Console.WriteLine("[ResponseNode] Cloud environment detected (OLLAMA_ENDPOINT set). Defaulting to mock.");
             _useMock = true;
         }
@@ -55,6 +57,7 @@ public class ResponseNode
         }
         else
         {
+            // Real AI
             Console.WriteLine("[ResponseNode] Generating response with Ollama...");
             var prompt = $"Based on this analysis, respond clearly:\n{state.Analysis}";
             var response = await _model.GenerateAsync(prompt);
@@ -62,6 +65,27 @@ public class ResponseNode
             Console.WriteLine("[ResponseNode] specific_response_generated");
         }
         
+        // Save to Cosmos DB
+        try
+        {
+            var record = new ConversationRecord
+            {
+                UserInput = state.Input,
+                Analysis = state.Analysis,
+                Response = state.Response
+            };
+            
+            // Temporary: Use a new SessionId if not available
+            if (string.IsNullOrEmpty(record.SessionId)) record.SessionId = "DefaultSession";
+            
+            await _cosmosService.AddItemAsync(record);
+            Console.WriteLine($"[ResponseNode] Saved conversation record to Cosmos DB (ID: {record.Id})");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ResponseNode] Failed to save to Cosmos DB: {ex.Message}");
+        }
+
         return state;
     }
 }

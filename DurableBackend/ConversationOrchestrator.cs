@@ -1,5 +1,6 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
+using DurableBackend.Models;
 
 namespace DurableBackend;
 
@@ -11,8 +12,14 @@ public static class ConversationOrchestrator
     {
         var input = context.GetInput<string>();
 
-        var result =
-            await context.CallActivityAsync<string>("GraphActivity", input);
+        var readerInput = new ReaderInput
+        {
+            InstanceId = context.InstanceId,
+            Content = input
+        };
+
+        // Call ReaderActivity instead of GraphActivity for now to test Cosmos integration
+        var result = await context.CallActivityAsync<string>("ReaderActivity", readerInput);
 
         return new { result };
     }

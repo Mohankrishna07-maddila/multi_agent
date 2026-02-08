@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using DurableBackend.Memory;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -9,7 +10,14 @@ builder.ConfigureFunctionsWebApplication();
 
 
 builder.Services.AddSingleton<DurableBackend.AI.IAiClient, DurableBackend.AI.LangChainAiClient>();
+builder.Services.AddSingleton<DurableBackend.AI.Graph.AnalysisNode>();
+builder.Services.AddSingleton<DurableBackend.AI.Graph.ResponseNode>();
 builder.Services.AddSingleton<DurableBackend.AI.LangGraphAgent>();
+builder.Services.AddSingleton(sp =>
+{
+    var conn = Environment.GetEnvironmentVariable("CosmosDBConnection");
+    return new CosmosMemoryStore(conn);
+});
 
 // Cosmos DB Registration
 builder.Services.AddSingleton(sp => 

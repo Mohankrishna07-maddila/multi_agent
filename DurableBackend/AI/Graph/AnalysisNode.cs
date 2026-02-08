@@ -24,7 +24,7 @@ public class AnalysisNode
             Console.WriteLine("[AnalysisNode] Local environment detected. connecting to local Ollama...");
             try 
             {
-                var provider = new OllamaProvider(); // http://localhost:11434
+                var provider = new OllamaProvider(url: "http://localhost:11434");
                 _model = new OllamaChatModel(provider, "llama3.2:1b");
                 _embeddingModel = new OllamaEmbeddingModel(provider, "all-minilm"); // Ensure this model is pulled!
                 _useMock = false;
@@ -64,6 +64,7 @@ public class AnalysisNode
             {
                 if (_embeddingModel != null)
                 {
+                    /*
                     // Generate embedding (Note: LangChain syntax might vary slightly, checking generic usage)
                     // Assuming CreateEmbeddingsAsync returns float[][] or similar
                     var embeddings = await _embeddingModel.CreateEmbeddingsAsync(prompt);
@@ -80,6 +81,8 @@ public class AnalysisNode
                              contextBuilder.AppendLine($"- {doc.Content} (Source: {doc.Metadata.GetValueOrDefault("source", "Unknown")})");
                         }
                     }
+                    */
+                    Console.WriteLine("[AnalysisNode] (FIX) Vector search temporarily disabled due to shared model compilation error.");
                 }
             }
             catch (Exception ex)
