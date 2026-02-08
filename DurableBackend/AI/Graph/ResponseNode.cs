@@ -11,16 +11,31 @@ public class ResponseNode
 
     public ResponseNode()
     {
-        // Try to use Ollama for local development
-        try
+        var ollamaEndpoint = Environment.GetEnvironmentVariable("OLLAMA_ENDPOINT");
+        Console.WriteLine($"[ResponseNode] OLLAMA_ENDPOINT value: '{ollamaEndpoint}'");
+        
+        // If running locally (no endpoint set), FORCE real AI
+        if (string.IsNullOrEmpty(ollamaEndpoint))
         {
-            var provider = new OllamaProvider();
-            _model = new OllamaChatModel(provider, "llama3.2:1b");
-            _useMock = false;
+            Console.WriteLine("[ResponseNode] Local environment detected. connecting to local Ollama...");
+            try 
+            {
+                var provider = new OllamaProvider(); // http://localhost:11434
+                _model = new OllamaChatModel(provider, "llama3.2:1b");
+                _useMock = false;
+                Console.WriteLine("[ResponseNode] Connected to local Ollama.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ResponseNode] FATAL: Could not connect to local Ollama. {ex.Message}");
+                throw; // Throw to stop execution and show error, don't use mock locally
+            }
         }
-        catch
+        else
         {
-            // Fall back to mock if Ollama is not available
+            // Azure/Cloud Environment - Default to mock for now
+            // Future: Implement Azure OpenAI or configured Ollama
+            Console.WriteLine("[ResponseNode] Cloud environment detected (OLLAMA_ENDPOINT set). Defaulting to mock.");
             _useMock = true;
         }
     }

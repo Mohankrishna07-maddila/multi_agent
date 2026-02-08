@@ -4,8 +4,10 @@
 
 <h3>Durable AI Workflow</h3>
 
-<input @bind="userInput" placeholder="Type something..." />
-<button @onclick="StartWorkflow">Start Workflow</button>
+<form @onsubmit="StartWorkflow">
+    <input @bind="userInput" placeholder="Type something..." />
+    <button type="submit">Start Workflow</button>
+</form>
 
 <p><b>Status:</b> @status</p>
 
