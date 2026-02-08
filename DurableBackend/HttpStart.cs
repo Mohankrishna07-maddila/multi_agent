@@ -19,12 +19,7 @@ public static class HttpStart
                 "ConversationOrchestrator",
                 input);
 
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", "application/json");
-
-        await response.WriteStringAsync(
-            $"{{ \"instanceId\": \"{instanceId}\" }}");
-
-        return response;
+        // Return management URLs with authentication codes
+        return await client.CreateCheckStatusResponseAsync(req, instanceId);
     }
 }

@@ -1,0 +1,67 @@
+# Ollama Configuration Guide for Durable Backend
+
+This guide explains how to set up and configure local Ollama for the Durable Functions backend.
+
+## 1. Prerequisites
+- **Install Ollama**: Download from [ollama.com](https://ollama.com)
+- **Pull Model**: Run the following command to download the Llama 3.2 1B model:
+  ```powershell
+  ollama pull llama3.2:1b
+  ```
+
+## 2. Verification
+To ensure Ollama is running correctly, execute these commands in your terminal:
+
+**Check Version:**
+```powershell
+ollama --version
+# Expected output: ollama version 0.15.5 or higher
+```
+
+**List Models:**
+```powershell
+ollama list
+# Expected output: llama3.2:1b    baf6a787fdff    1.3 GB
+```
+
+**Start Server:**
+Ollama usually runs in the background. If not, start it with:
+```powershell
+ollama serve
+```
+
+## 3. Backend Configuration
+The backend (`DurableBackend`) is configured to automatically detect and use your local Ollama instance.
+
+### Automatic Detection Logic
+In `AnalysisNode.cs` and `ResponseNode.cs`:
+1. The code attempts to connect to local Ollama first.
+2. If successful, it uses `llama3.2:1b` for generating responses.
+3. If Ollama is not running or unreachable, it **gracefully falls back** to Mock responses.
+
+### Code Snippet (Reference)
+```csharp
+try
+{
+    var provider = new OllamaProvider();
+    _model = new OllamaChatModel(provider, "llama3.2:1b");
+    _useMock = false;
+}
+catch
+{
+    _useMock = true; // Fallback to mock
+}
+```
+
+## 4. Azure Deployment Note
+❌ **Ollama does NOT run in Azure Functions consumption plan.**
+- When deployed to Azure, the backend will automatically use the **Mock Response** fallback.
+- To use real AI in Azure, you must configure an external service like Azure OpenAI (future enhancement).
+
+## 5. Troubleshooting
+- **Build Errors:** If you see errors about `OllamaProvider`, ensure dependencies are restored: `dotnet restore`
+- **Connection Refused:** Make sure `ollama serve` is running.
+- **Wrong Model:** If you want to use a different model (e.g., `llama3`), update the model name in `AnalysisNode.cs` and `ResponseNode.cs`:
+  ```csharp
+  _model = new OllamaChatModel(provider, "llama3"); // Change model name here
+  ```

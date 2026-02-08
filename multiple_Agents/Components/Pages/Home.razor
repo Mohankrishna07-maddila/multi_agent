@@ -19,6 +19,7 @@
     string userInput = "";
     string status = "Idle";
     string result = "";
+    string statusUrl = "";
     string instanceId = "";
 
     async Task StartWorkflow()
@@ -34,15 +35,44 @@
             var startResponse =
                 await client.GetStringAsync($"/api/start/{userInput}");
 
-            instanceId = System.Text.Json.JsonDocument
-                .Parse(startResponse)
-                .RootElement
-                .GetProperty("instanceId")
-                .GetString()!;
+            var json = System.Text.Json.JsonDocument.Parse(startResponse);
+            
+            // Try to get StatusQueryGetUri (Azure PascalCase format)
+            if (json.RootElement.TryGetProperty("StatusQueryGetUri", out var statusUriProp))
+            {
+                // Azure format: use authenticated URL
+                statusUrl = statusUriProp.GetString()!;
+                status = $"Workflow started. Waiting for completion...";
+            }
+            else if (json.RootElement.TryGetProperty("statusQueryGetUri", out var statusUriPropCamel))
+            {
+                // camelCase format: use authenticated URL
+                statusUrl = statusUriPropCamel.GetString()!;
+                status = $"Workflow started. Waiting for completion...";
+            }
+            else if (json.RootElement.TryGetProperty("Id", out var idProp))
+            {
+                // Azure format with 'Id' - construct URL manually
+                instanceId = idProp.GetString()!;
+                statusUrl = $"/runtime/webhooks/durabletask/instances/{instanceId}";
+                status = $"Workflow started (ID: {instanceId}). Waiting for completion...";
+            }
+            else if (json.RootElement.TryGetProperty("id", out var idPropLower))
+            {
+                // camelCase format with 'id'
+                instanceId = idPropLower.GetString()!;
+                statusUrl = $"/runtime/webhooks/durabletask/instances/{instanceId}";
+                status = $"Workflow started (ID: {instanceId}). Waiting for completion...";
+            }
+            else
+            {
+                // Old format: construct URL manually
+                instanceId = json.RootElement.GetProperty("instanceId").GetString()!;
+                statusUrl = $"/runtime/webhooks/durabletask/instances/{instanceId}";
+                status = $"Workflow started (ID: {instanceId}). Waiting for completion...";
+            }
 
-            status = $"Workflow started (ID: {instanceId}). Waiting for completion...";
-
-            // 2️⃣ Poll status
+            // 2️⃣ Poll status using the URL
             await PollStatus(client);
         }
         catch (Exception ex)
@@ -57,22 +87,29 @@
         {
             await Task.Delay(1000); // poll every second
 
-            var statusResponse =
-                await client.GetStringAsync(
-                    $"/runtime/webhooks/durabletask/instances/{instanceId}");
-
-            var json = System.Text.Json.JsonDocument.Parse(statusResponse);
-            var runtimeStatus = json.RootElement.GetProperty("runtimeStatus").GetString();
-
-            status = $"Workflow status: {runtimeStatus}";
-
-            if (runtimeStatus == "Completed")
+            try
             {
-                result = json.RootElement
-                    .GetProperty("output")
-                    .ToString();
+                // Use the status URL (may be authenticated or not)
+                var statusResponse = await client.GetStringAsync(statusUrl);
 
-                status = "Workflow completed";
+                var json = System.Text.Json.JsonDocument.Parse(statusResponse);
+                var runtimeStatus = json.RootElement.GetProperty("runtimeStatus").GetString();
+
+                status = $"Workflow status: {runtimeStatus}";
+
+                if (runtimeStatus == "Completed")
+                {
+                    result = json.RootElement
+                        .GetProperty("output")
+                        .ToString();
+
+                    status = "Workflow completed";
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                status = $"ERROR: {ex.Message}";
                 break;
             }
         }
