@@ -1,20 +1,24 @@
 using LangChain.Providers;
 using LangChain.Providers.Ollama;
-using DurableBackend.AI.Graph;
+using DurableBackend.Services;
+using DurableBackend.Models;
+using System.Text;
 
 namespace DurableBackend.AI.Graph;
 
 public class AnalysisNode
 {
     private readonly OllamaChatModel? _model;
+    private readonly OllamaEmbeddingModel? _embeddingModel;
     private readonly bool _useMock;
+    private readonly CosmosDbService _cosmosService;
 
-    public AnalysisNode()
+    public AnalysisNode(CosmosDbService cosmosService)
     {
+        _cosmosService = cosmosService;
         var ollamaEndpoint = Environment.GetEnvironmentVariable("OLLAMA_ENDPOINT");
         Console.WriteLine($"[AnalysisNode] OLLAMA_ENDPOINT value: '{ollamaEndpoint}'");
         
-        // If running locally (no endpoint set), FORCE real AI
         if (string.IsNullOrEmpty(ollamaEndpoint))
         {
             Console.WriteLine("[AnalysisNode] Local environment detected. connecting to local Ollama...");
@@ -22,20 +26,19 @@ public class AnalysisNode
             {
                 var provider = new OllamaProvider(); // http://localhost:11434
                 _model = new OllamaChatModel(provider, "llama3.2:1b");
+                _embeddingModel = new OllamaEmbeddingModel(provider, "all-minilm"); // Ensure this model is pulled!
                 _useMock = false;
                 Console.WriteLine("[AnalysisNode] Connected to local Ollama.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[AnalysisNode] FATAL: Could not connect to local Ollama. {ex.Message}");
-                throw; // Throw to stop execution and show error, don't use mock locally
+                throw;
             }
         }
         else
         {
-            // Azure/Cloud Environment - Default to mock for now
-            // Future: Implement Azure OpenAI or configured Ollama
-            Console.WriteLine("[AnalysisNode] Cloud environment detected (OLLAMA_ENDPOINT set). Defaulting to mock.");
+            Console.WriteLine("[AnalysisNode] Cloud environment detected. Defaulting to mock.");
             _useMock = true;
         }
     }
@@ -46,19 +49,49 @@ public class AnalysisNode
         
         if (_useMock || _model == null)
         {
-            // Mock response for testing/Azure deployment
-            await Task.Delay(500); // Simulate processing
-            state.Analysis = $"[Mock Analysis] Analyzed input: '{state.Input}'. " +
-                           $"This appears to be a user query that requires a thoughtful response. " +
-                           $"Key topics identified: general inquiry, conversational AI.";
+            await Task.Delay(500); 
+            state.Analysis = $"[Mock Analysis] Analyzed input: '{state.Input}'.";
         }
         else
         {
-            Console.WriteLine("[AnalysisNode] Generating response with Ollama...");
-            var prompt = $"Analyze the following input:\n{state.Input}";
-            var response = await _model.GenerateAsync(prompt);
+            Console.WriteLine("[AnalysisNode] Generating embeddings/Response with Ollama...");
+            
+            // 1. Generate Embedding for Query
+            var prompt = state.Input;
+            StringBuilder contextBuilder = new StringBuilder();
+            
+            try 
+            {
+                if (_embeddingModel != null)
+                {
+                    // Generate embedding (Note: LangChain syntax might vary slightly, checking generic usage)
+                    // Assuming CreateEmbeddingsAsync returns float[][] or similar
+                    var embeddings = await _embeddingModel.CreateEmbeddingsAsync(prompt);
+                    var queryVector = embeddings.First(); // float[]
+                    
+                    // 2. Vector Search
+                    var results = await _cosmosService.SearchAsync(queryVector, topK: 3);
+                    
+                    if (results.Any())
+                    {
+                        contextBuilder.AppendLine("Relevant Context/Citations:");
+                        foreach (var doc in results)
+                        {
+                             contextBuilder.AppendLine($"- {doc.Content} (Source: {doc.Metadata.GetValueOrDefault("source", "Unknown")})");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                 Console.WriteLine($"[AnalysisNode] Vector Search Failed: {ex.Message}");
+                 // Continue without context
+            }
+
+            // 3. Generate Analysis with Context
+            var fullPrompt = $"Analyze the following input:\n{state.Input}\n\n{contextBuilder}";
+            var response = await _model.GenerateAsync(fullPrompt);
             state.Analysis = response.ToString();
-            Console.WriteLine("[AnalysisNode] specific_response_generated");
         }
         
         return state;
